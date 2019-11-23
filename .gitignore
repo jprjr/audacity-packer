@@ -1,0 +1,6 @@
+/audacity-packer
+/output
+*.o
+*.exe
+*.res
+.DS_Store
