@@ -18,6 +18,7 @@
 #include "fopen_wrapper.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wavpack/wavpack.h>
 
 static uint8_t pack_le_int16(uint8_t *d, int32_t s) {
