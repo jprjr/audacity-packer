@@ -25,6 +25,7 @@
 int MAIN_SIG {
     (void)envp;
     int ret = 0;
+    int i = 0;
     char **newargv;
     newargv = (char **)malloc(sizeof(char *) * argc);
     if(newargv == NULL) return 1;
@@ -34,20 +35,26 @@ int MAIN_SIG {
     SetConsoleOutputCP(CP_UTF8);
 #endif
 
-    for(ret = 0; ret < argc; ret++) {
-        newargv[ret] = w_to_mb(argv[ret]);
-        if(newargv[ret] == NULL) return 1;
+    for(i = 0; i < argc; i++) {
+        newargv[i] = w_to_mb(argv[i]);
+        if(newargv[i] == NULL) return 1;
     }
     ret = 0;
 
     if(argc < 2) {
         ret = start_gui(argc,newargv);
         if(ret != -1) {
+            for(i = 0; i < argc; i++) {
+                free(newargv[i]);
+            }
             free(newargv);
             return ret;
         }
     }
     ret = start_cli(argc,newargv);
+    for(i = 0; i < argc; i++) {
+        free(newargv[i]);
+    }
     free(newargv);
     return ret;
 }
