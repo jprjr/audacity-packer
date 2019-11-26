@@ -18,5 +18,7 @@ an MIT-style license. Details in `LICENSE`
 
 Some exceptions:
 
-* `src/tinydir.h` - retains original licensing (simplified BSD), details found
+* `tinydir.h` - retains original licensing (simplified BSD), details found
+within the file.
+* `yxml.c` and `yxml.h` - retains original licensing (MIT), details found
 within the file.
