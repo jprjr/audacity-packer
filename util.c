@@ -1,4 +1,7 @@
 #include "util.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #ifndef _UNICODE
@@ -11,7 +14,6 @@
 #define WIN32_LEAN_AND_MEAN 1
 #endif
 #include <windows.h>
-#include <stdlib.h>
 #include "winstr.h"
 
 int util_isdir(const char *path) {
@@ -83,3 +85,30 @@ int util_delfile(const char *path) {
     return unlink(path) == 0;
 }
 #endif
+
+static const char *hsize_formats[] = {
+    "B",
+    "KB",
+    "MB",
+    "GB",
+    "TB",
+    NULL
+};
+
+char *util_hsize(uint64_t filesize) {
+    char *fmt = NULL;
+    unsigned int size_len = 0;
+    unsigned int i = 0;
+    double hsize = (double)filesize;
+
+    while(hsize > 1024.0f && hsize_formats[i+1] != NULL) {
+        hsize /= 1024.0f;
+        i++;
+    }
+
+    size_len = snprintf(NULL,0,"%0.3f %s",hsize,hsize_formats[i]);
+    fmt = (char *)malloc(size_len+1);
+    if(fmt == NULL) return NULL;
+    snprintf(fmt,size_len+1,"%0.3f %s",hsize,hsize_formats[i]);
+    return fmt;
+}
