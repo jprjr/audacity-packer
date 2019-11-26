@@ -6,8 +6,8 @@ CURSOR_PEN CURSOR "/usr/i686-w64-mingw32/etc/iup/pen.cur"
 #endif
 
 1 VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION 1,0,1,0
+ PRODUCTVERSION 1,0,1,0
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
@@ -16,11 +16,11 @@ BEGIN
             VALUE "Comments", "Audacity Packer\0"
             VALUE "CompanyName", "John Regan\0"
             VALUE "FileDescription", "Audacity Packer\0"
-            VALUE "FileVersion", "1.0.0\0"
+            VALUE "FileVersion", "1.0.1\0"
             VALUE "LegalCopyright", "Copyright 2019 John Regan.\0"
             VALUE "OriginalFilename", "audacity-packer.exe\0"
             VALUE "ProductName", "Audacity Packer\0"
-            VALUE "ProductVersion", "1.0.0\0"
+            VALUE "ProductVersion", "1.0.1\0"
         END
     END
 END

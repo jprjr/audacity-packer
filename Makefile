@@ -1,6 +1,6 @@
 .PHONY: all clean release
 
-CFLAGS = -g -Os -Wall -Wextra -Werror -Wno-unused-parameter
+CFLAGS = -g -DNDEBUG -Os -Wall -Wextra -Werror -Wno-unused-parameter
 LDFLAGS = -s -lwavpack
 EXE ?= audacity-packer
 RES ?=
