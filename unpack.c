@@ -35,7 +35,7 @@ unsigned int unpack(filelist *flist, unsigned int i) {
         return 1;
     }
 
-    strcat(unpackedfile,".wv");
+    strcat(unpackedfile,".au");
     ret = auunpack(flist->files[i].packedfile,unpackedfile);
     if(ret == 0) {
         DEBUG_LOG("Removing %s\n",flist->files[i].packedfile);
