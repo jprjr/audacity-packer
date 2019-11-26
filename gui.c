@@ -95,7 +95,7 @@ static int unpackFiles(void) {
     unsigned int status_len;
     for(i=0;i<flist->total;i++) {
         status_len = snprintf(NULL,0,"Status: unpacking %u/%u",i+1,flist->total);
-        inact_status = realloc(inact_status,status_len);
+        inact_status = realloc(inact_status,status_len+1);
         snprintf(inact_status,status_len+1,"Status: unpacking %u/%u",i+1,flist->total);
 
         swapStatus();
@@ -118,7 +118,7 @@ static int packFiles(void) {
     unsigned int status_len;
     for(i=0;i<flist->total;i++) {
         status_len = snprintf(NULL,0,"Status: packing %u/%u",i+1,flist->total);
-        inact_status = realloc(inact_status,status_len);
+        inact_status = realloc(inact_status,status_len+1);
         snprintf(inact_status,status_len+1,"Status: packing %u/%u",i+1,flist->total);
 
         swapStatus();
@@ -286,7 +286,7 @@ static int batchPackBtnCb(Ihandle *self) {
     unsigned int status_len;
     for(i=0;i<plist->total;i++) {
        status_len = snprintf(NULL,0,"Status: batch packing %u/%u",i+1,plist->total);
-       batch_inact_status = realloc(batch_inact_status,status_len);
+       batch_inact_status = realloc(batch_inact_status,status_len+1);
        status_len = snprintf(batch_inact_status,status_len+1,"Status: batch packing %u/%u",i+1,plist->total);
        swapBatchStatus();
        IupSetfAttribute(batchProgressBar,"VALUE","%g", (double) i / (double)plist->total);
@@ -308,7 +308,7 @@ static int batchUnpackBtnCb(Ihandle *self) {
     unsigned int status_len;
     for(i=0;i<plist->total;i++) {
        status_len = snprintf(NULL,0,"Status: batch unpacking %u/%u",i+1,plist->total);
-       batch_inact_status = realloc(batch_inact_status,status_len);
+       batch_inact_status = realloc(batch_inact_status,status_len+1);
        status_len = snprintf(batch_inact_status,status_len+1,"Status: unbatch packing %u/%u",i+1,plist->total);
        swapBatchStatus();
        IupSetfAttribute(batchProgressBar,"VALUE","%g", (double) i / (double)plist->total);
