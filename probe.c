@@ -74,8 +74,6 @@ int probe(const char *_path, filelist *flist) {
     }
 #endif
 
-    ret = audparse(path,folder,flist);
-
 #if defined(_WIN32) || defined(_WIN64)
     folder = realloc(folder,sizeof(char) * (
       strlen(folder) +
