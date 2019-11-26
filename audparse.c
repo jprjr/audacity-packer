@@ -24,7 +24,6 @@ aud_parser *aud_new(void) {
     }
     parser->xml = NULL;
     parser->xmlsize = 0;
-    yxml_init(parser->x,parser->buffer,8192);
 
     return parser;
 }
@@ -52,6 +51,7 @@ void aud_free(aud_parser *parser) {
 
 int aud_load(aud_parser *parser, const char *filename) {
     aud_unload(parser);
+    yxml_init(parser->x,parser->buffer,8192);
 
     parser->xml = slurp(filename, &(parser->xmlsize));
     if(parser->xml == NULL) {
