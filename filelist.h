@@ -1,6 +1,8 @@
 #ifndef FILELIST_H
 #define FILELIST_H
 
+#include <stdint.h>
+
 struct fileinfo_s {
     char *basename;
     char *sourcefile;
@@ -33,7 +35,7 @@ fileinfo *filelist_append(filelist *flist, const char *filename, unsigned int sa
 fileinfo *filelist_update(filelist *flist, const char *filename, const char *fullpath);
 
 int fileinfo_folder(fileinfo *info, const char *folder);
-void filelist_totals(filelist *flist, unsigned int *total, unsigned int *source, unsigned int *packed, unsigned int *source_size, unsigned int *packed_size);
+void filelist_totals(filelist *flist, uint64_t *total, uint64_t *source, uint64_t *packed, uint64_t *source_size, uint64_t *packed_size);
 
 
 #ifdef _cplusplus

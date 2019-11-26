@@ -127,7 +127,7 @@ fileinfo *filelist_append(filelist *flist, const char *filename, unsigned int sa
     return &flist->files[flist->total - 1];
 }
 
-void filelist_totals(filelist *flist, unsigned int *total, unsigned int *source, unsigned int *packed, unsigned int *source_size, unsigned int *packed_size) {
+void filelist_totals(filelist *flist, uint64_t *total, uint64_t *source, uint64_t *packed, uint64_t *source_size, uint64_t *packed_size) {
     unsigned int i = 0;
     *total = flist->total;
     *source = 0;

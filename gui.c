@@ -9,6 +9,7 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
 #endif
+
 #include <windows.h>
 #include <iup.h>
 #include <tchar.h>
@@ -16,7 +17,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <inttypes.h>
 
+#include "audparse.h"
 #include "probe.h"
 #include "filelist.h"
 #include "pack.h"
@@ -25,6 +28,7 @@
 #include "util.h"
 
 static projectlist *plist;
+static aud_parser *parser;
 static filelist *flist;
 static int hide_warning;
 
@@ -59,17 +63,8 @@ static char *batch_status2;
 static char *batch_act_status;
 static char *batch_inact_status;
 
-static const char *size_formats[] = {
-    "B",
-    "KB",
-    "MB",
-    "GB",
-    "TB",
-    "I'm so sorry",
-    NULL
-};
-
 static void clean(void) {
+    if(parser != NULL) aud_free(parser);
     if(flist != NULL) filelist_free(flist);
     if(status != NULL) free(status);
     if(status2 != NULL) free(status2);
@@ -77,19 +72,6 @@ static void clean(void) {
     if(plist != NULL) projectlist_free(plist);
     if(batch_status != NULL) free(batch_status);
     if(batch_status2 != NULL) free(batch_status2);
-}
-
-static void formatSize(uint32_t filesize) {
-    unsigned int size_len = 0;
-    unsigned int i = 0;
-    double size = (double)filesize;
-    while(size > 1024.0f && size_formats[i+1] != NULL) {
-        size /= 1024.0f;
-        i++;
-    }
-    size_len = snprintf(NULL,0,"%0.3f %s",size,size_formats[i]);
-    size_fmt = realloc(size_fmt,size_len+1);
-    snprintf(size_fmt,size_len+1,"%0.3f %s",size,size_formats[i]);
 }
 
 static void swapBatchStatus(void) {
@@ -108,7 +90,7 @@ static void swapStatus(void) {
     IupSetAttribute(statusLabel,"TITLE",act_status);
 }
 
-static void unpackFiles(void) {
+static int unpackFiles(void) {
     unsigned int i = 0;
     unsigned int status_len;
     for(i=0;i<flist->total;i++) {
@@ -120,13 +102,18 @@ static void unpackFiles(void) {
         IupSetfAttribute(progressBar,"VALUE","%g", (double) i / (double)flist->total);
         if(IupLoopStep() == IUP_CLOSE) {
             IupExitLoop();
+            return IUP_CLOSE;
         }
-        unpack(flist,i);
+        if(unpack(flist,i) != 0) {
+            IupMessage("Error","error unpacking");
+            return IUP_CLOSE;
+        }
     }
     IupSetfAttribute(progressBar,"VALUE","%g", 1.0f);
+    return IUP_DEFAULT;
 }
 
-static void packFiles(void) {
+static int packFiles(void) {
     unsigned int i = 0;
     unsigned int status_len;
     for(i=0;i<flist->total;i++) {
@@ -138,10 +125,15 @@ static void packFiles(void) {
         IupSetfAttribute(progressBar,"VALUE","%g", (double) i / (double)flist->total);
         if(IupLoopStep() == IUP_CLOSE) {
             IupExitLoop();
+            return IUP_CLOSE;
         }
-        pack(flist,i);
+        if(pack(flist,i) != 0) {
+            IupMessage("Error","error unpacking");
+            return IUP_CLOSE;
+        }
     }
     IupSetfAttribute(progressBar,"VALUE","%g", 1.0f);
+    return IUP_DEFAULT;
 }
 
 static void loadProjects(const char *folder) {
@@ -160,48 +152,102 @@ static void loadProjects(const char *folder) {
     }
 
     swapBatchStatus();
+
+    return;
 }
 
-static void loadAudacity(const char *file) {
+static int loadAudacity(const char *file) {
     unsigned int status_len;
-    unsigned int total;
-    unsigned int source;
-    unsigned int packed;
-    unsigned int source_size;
-    unsigned int packed_size;
+    uint64_t total;
+    uint64_t source;
+    uint64_t packed;
+    uint64_t source_size;
+    uint64_t packed_size;
+    int aud_res;
+    unsigned int chunk_pos = 0;
+    unsigned int chunk_size = 0;
+    double progress = 0.0f;
     int pret;
+    if(parser == NULL) {
+        parser = aud_new();
+        if(parser == NULL) {
+            IupMessage("Error","out of memory");
+            return IUP_CLOSE;
+        }
+    }
+    if(aud_load(parser,file) != 0) {
+        IupMessage("Error","out of memory");
+        return IUP_CLOSE;
+    }
+
     if(flist != NULL) filelist_free(flist);
     flist = filelist_new();
-    pret = probe(file,flist);
-    if(pret == -1) {
-        filelist_free(flist);
-        flist =  NULL;
-        IupMessage("Error","Failed to load Audacity project");
-        return;
+
+    IupSetfAttribute(progressBar,"VALUE","%g", 0.0f);
+    if(IupLoopStep() == IUP_CLOSE) {
+        IupExitLoop();
+        return IUP_CLOSE;
     }
-    else if(pret == -2 && hide_warning == 0) {
-        IupMessage("Warning","Found aliased audio.\nUse File -> Save Lossless Copy of Project\nin Audacity");
+    chunk_size = parser->xmlsize / 10;
+    do {
+        aud_res = aud_parse(parser,flist);
+        chunk_pos++;
+        if(chunk_pos == chunk_size) {
+            progress += 0.10f;
+            IupSetfAttribute(progressBar,"VALUE","%g", progress);
+            chunk_pos = 0;
+            if(IupLoopStep() == IUP_CLOSE) {
+                IupExitLoop();
+                return IUP_CLOSE;
+            }
+        }
+    } while(aud_res == 0);
+
+    switch(aud_res) {
+        case -1: {
+            filelist_free(flist);
+            flist =  NULL;
+            IupMessage("Error","Failed to load Audacity project");
+            return IUP_CLOSE;
+        }
+        case -2: {
+            if(hide_warning == 0) {
+                IupMessage("Warning","Found aliased audio.\nUse File -> Save Lossless Copy of Project\nin Audacity");
+            }
+            break;
+        }
     }
+   IupSetfAttribute(progressBar,"VALUE","%g", 1.0f);
+
+   pret = probe(file,flist);
+   if(pret == -1) {
+       IupMessage("Error","out of memory");
+       return IUP_CLOSE;
+   }
+
    IupSetAttribute(fileText,"VALUE",file);
    filelist_totals(flist,&total,&source,&packed,&source_size,&packed_size);
    if(source > packed) {
-       formatSize(source_size);
-       status_len = snprintf(NULL,0,"Status: loaded, %u raw files, %s",source,size_fmt);
+       size_fmt = util_hsize(source_size);
+       status_len = snprintf(NULL,0,"Status: loaded, %" PRIu64 " raw files, %s",source,size_fmt);
        inact_status = realloc(inact_status,status_len+1);
-       status_len = snprintf(inact_status,status_len+1,"Status: loaded, %u raw files, %s",source,size_fmt);
+       status_len = snprintf(inact_status,status_len+1,"Status: loaded, %" PRIu64 " raw files, %s",source,size_fmt);
        IupSetAttribute(packButton,"ACTIVE","YES");
        IupSetAttribute(unpackButton,"ACTIVE","NO");
    }
    else {
-       formatSize(packed_size);
-       status_len = snprintf(NULL,0,"Status: loaded, %u packed files, %s",packed,size_fmt);
+       size_fmt = util_hsize(packed_size);
+       status_len = snprintf(NULL,0,"Status: loaded, %" PRIu64 " packed files, %s",packed,size_fmt);
        inact_status = realloc(inact_status,status_len+1);
-       status_len = snprintf(inact_status,status_len+1,"Status: loaded, %u packed files, %s",packed,size_fmt);
+       status_len = snprintf(inact_status,status_len+1,"Status: loaded, %" PRIu64 " packed files, %s",packed,size_fmt);
        IupSetAttribute(unpackButton,"ACTIVE","YES");
        IupSetAttribute(packButton,"ACTIVE","NO");
    }
    swapStatus();
    fprintf(stderr,"Setting status to %s\n",act_status);
+   free(size_fmt);
+   size_fmt = NULL;
+   return IUP_DEFAULT;
 }
 
 static int batchOpenBtnCb(Ihandle *self) {
@@ -245,7 +291,9 @@ static int batchPackBtnCb(Ihandle *self) {
        swapBatchStatus();
        IupSetfAttribute(batchProgressBar,"VALUE","%g", (double) i / (double)plist->total);
        loadAudacity(plist->projects[i]);
-       packFiles();
+       if(packFiles() != IUP_DEFAULT) {
+           return IUP_CLOSE;
+       }
        hide_warning = 1;
        loadAudacity(plist->projects[i]);
        hide_warning = 0;
@@ -265,7 +313,9 @@ static int batchUnpackBtnCb(Ihandle *self) {
        swapBatchStatus();
        IupSetfAttribute(batchProgressBar,"VALUE","%g", (double) i / (double)plist->total);
        loadAudacity(plist->projects[i]);
-       unpackFiles();
+       if(unpackFiles() != IUP_DEFAULT) {
+           return IUP_CLOSE;
+       }
        hide_warning = 1;
        loadAudacity(plist->projects[i]);
        hide_warning = 0;
@@ -278,7 +328,9 @@ static int batchUnpackBtnCb(Ihandle *self) {
 static int packBtnCb(Ihandle *self) {
     (void)self;
     char *file = IupGetAttribute(fileText,"VALUE");
-    packFiles();
+    if(packFiles() != IUP_DEFAULT) {
+        return IUP_CLOSE;
+    }
     loadAudacity(file);
     return IUP_DEFAULT;
 }
@@ -286,7 +338,9 @@ static int packBtnCb(Ihandle *self) {
 static int unpackBtnCb(Ihandle *self) {
     (void)self;
     char *file = IupGetAttribute(fileText,"VALUE");
-    unpackFiles();
+    if(unpackFiles() != IUP_DEFAULT) {
+        return IUP_CLOSE;
+    }
     loadAudacity(file);
     return IUP_DEFAULT;
 }
@@ -342,6 +396,7 @@ static int batchDlgBtnCb(Ihandle *self) {
 int start_gui(int argc, char *argv[]) {
     flist = NULL;
     plist = NULL;
+    parser = NULL;
     status = NULL;
     status2 = NULL;
     batch_status = NULL;
