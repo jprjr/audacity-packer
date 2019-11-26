@@ -1,37 +1,42 @@
-#if defined(__linux__)
-#ifndef _FILE_OFFSET_BITS
-#define _FILE_OFFSET_BITS 64
-#endif
-#ifndef _LARGEFILE64_SOURCE
-#define _LARGEFILE64_SOURCE 1
-#endif
-#endif
-
 #if defined(_WIN32) || defined(_WIN64)
-#define FSEEK(a,b,c) _fseeki64(a,b,c)
-#define FTELL(a) _ftelli64(a)
+#ifndef _UNICODE
+#define _UNICODE 1
+#endif
+#ifndef UNICODE
+#define UNICODE 1
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN 1
+#endif
+#include <windows.h>
+#include <stdlib.h>
 #else
-#define FSEEK(a,b,c) fseeko(a,b,c)
-#define FTELL(a) ftello(a)
+#include <sys/types.h>
+#include <sys/stat.h>
 #endif
 
 #include "filesize.h"
-#include "fopen_wrapper.h"
-#include <stdlib.h>
-#include <stdio.h>
+#include "winstr.h"
 
 size_t filesize(const char *filename) {
-    FILE *f;
-    size_t length;
+#if defined(_WIN32) || defined(_WIN64)
+    wchar_t *w_path;
+    WIN32_FILE_ATTRIBUTE_DATA fad;
+    LARGE_INTEGER size;
 
-    f = NULL;
-    length = 0;
+    w_path = mb_to_w(filename);
+    if(w_path == NULL) return 0;
 
-    f = fopen_wrapper(filename,"rb");
-    if(f == NULL) goto cleanup;
-    if(FSEEK(f,0,SEEK_END) != 0) goto cleanup;
-    length = (size_t)FTELL(f);
-cleanup:
-    if(f != NULL) fclose(f);
-    return length;
+    if(!GetFileAttributesExW(w_path,GetFileExInfoStandard,&fad)) return 0;
+    free(w_path);
+
+    size.HighPart = fad.nFileSizeHigh;
+    size.LowPart = fad.nFileSizeLow;
+    return size.QuadPart;
+#else
+    struct stat st;
+    if(stat(filename,&st) != 0) return 0;
+    return st.st_size;
+#endif
+
 }
