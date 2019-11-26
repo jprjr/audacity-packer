@@ -1,4 +1,5 @@
 #include "fopen_wrapper.h"
+#include "util.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -135,6 +136,8 @@ unsigned int aupack(const char *input, const char *output, unsigned int samplera
     header = NULL;
     data = NULL;
     samples = NULL;
+
+    DEBUG_LOG("Packing %s to %s\n",input,output);
 
     memset(&wp_config,0,sizeof(WavpackConfig));
 
@@ -281,6 +284,7 @@ unsigned int aupack(const char *input, const char *output, unsigned int samplera
         goto error;
     }
 
+    DEBUG_LOG("Unpack successful\n");
     goto cleanup;
 error:
     ret = 1;

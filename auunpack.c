@@ -16,6 +16,7 @@
 #endif
 
 #include "fopen_wrapper.h"
+#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -131,6 +132,8 @@ unsigned int auunpack(const char *input, const char *output) {
     endian = 0;
     flags = 0;
 
+    DEBUG_LOG("Unpacking %s to %s\n",input,output);
+
     infile = fopen_wrapper(input,"rb");
     if(infile == NULL) goto error;
 
@@ -193,6 +196,7 @@ unsigned int auunpack(const char *input, const char *output) {
         if((int)fwrite(packed,1,sample_size,outfile) != sample_size) goto error;
     }
 
+    DEBUG_LOG("Unpack successful\n");
     goto cleanup;
 
 error:
